@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>王者荣耀最低战力查询</title>
+    <link rel="stylesheet" href="./css/index.css">
+    <link rel="stylesheet" href="./css/style.css">
+
+</head>
+<body>
+<div id="app">
+    <div id="input">
+        <input type="text"
+               placeholder="请输入你想查询的英雄名..."
+               v-model="heroName"
+               @focus="changeInputStyle(1)"
+               @blur="changeInputStyle(2)"
+               @keyup.enter="search($event)">
+        <i class="el-icon-search"
+           :style="'color:'+color"
+           @mousedown="search"
+           @mouseover="color = '#f3c258'"
+           @mouseleave="color = '#fff'"></i>
+        <select size="1" v-model="type">
+            <option class="select_option" v-for="(item,index) in options" :value="item.value">{{item.label}}</option>
+        </select>
+    </div>
+    <div id="skins" @mouseover="changeBackground">
+        <div class="skin" v-for="(item,index) in pictureList" :key="item.id">
+            <span class="avatar" :style="{backgroundImage:'url('+item.picture+')'}"></span>
+            <span class="title">{{item.title}}</span>
+        </div>
+    </div>
+    <div id="score_list">
+        <div class="list">
+            <span>级别</span>
+            <span>地区名称</span>
+            <span>分数</span>
+        </div>
+        <hr>
+        <div class="list">
+            <span>{{score.province}}</span>
+            <span>{{score.provinceName}}</span>
+            <span>{{score.provincePower}}</span>
+        </div>
+        <div class="list">
+            <span>{{score.city}}</span>
+            <span>{{score.cityName}}</span>
+            <span>{{score.cityPower}}</span>
+        </div>
+        <div class="list">
+            <span>{{score.area}}</span>
+            <span>{{score.areaName}}</span>
+            <span>{{score.areaPower}}</span>
+        </div>
+        <span class="score_footer">更新时间 {{score.updateTime}}</span>
+    </div>
+
+</div>
+<script src="./js/vue.min.js"></script>
+<script>
+    let app = new Vue({
+        el: '#app',
+        data: {
+            initialHeight: '',
+            pictureList: [],
+            id: '',
+            heroName: '露娜',
+            heroList: [],
+            skinNum: 0,
+            timer: null,
+            color: 'color:#E4E7ED',
+            type: 'aqq',
+            score: {
+                area: '县级',
+                areaName: '城区',
+                areaPower: '1000',
+                city: '市级',
+                cityName: '市区',
+                cityPower: '2000',
+                province: '省级',
+                provinceName: '省份',
+                provincePower: '4000',
+                updateTime: '2020-2-2',
+            },
+            options: [
+                {
+                    value: 'aqq',
+                    label: '安卓QQ'
+                },
+                {
+                    value: 'awx',
+                    label: '安卓微信'
+                },
+                {
+                    value: 'iqq',
+                    label: '苹果QQ'
+                },
+                {
+                    value: 'iwx',
+                    label: '苹果微信'
+                },
+            ]
+        },
+        created: function () {
+            this.initialHeight = window.innerHeight
+            let that = this
+            let xhr = new XMLHttpRequest()
+            xhr.open("get", "https://rank.sapi.run/getHeroList.php")
+            xhr.send()
+            xhr.onreadystatechange = function () {
+                if (xhr.status === 200 && xhr.readyState === 4) {
+                    that.heroList = JSON.parse(xhr.responseText).data
+                    that.search()
+                }
+            }
+
+        },
+        mounted: function () {
+            let app = document.getElementById("app")
+            app.style.minHeight = this.initialHeight + 'px'
+        },
+        methods: {
+            search(e) {
+                if (this.timer !== null) {
+                    alert("每两秒钟仅能查询一次哦~")
+                    return
+                }
+                this.timer = setTimeout(() => {
+                    this.timer = null
+                }, 2000)
+                this.id = 0
+                for (let item of this.heroList) {
+                    if (item.cname === this.heroName) {
+                        this.pictureList = []
+                        this.getSkin(this.heroName)
+                        this.getLowestScore()
+                        return
+                    }
+                    this.id++
+                }
+                alert("未找到此英雄，请确认英雄名称~")
+            },
+            changeBackground(e) {
+                if (e.target.tagName !== "SPAN") return
+                let divs = e.currentTarget.childNodes
+                let i = 0
+                for (let div of divs) {
+                    div.childNodes[0].style.borderColor = '#8d8d8d'
+                    div.childNodes[2].style.color = '#fff'
+                    if (e.target.parentNode === div) {
+                        let app = document.getElementById("app")
+                        app.style.backgroundImage = 'url(' + this.pictureList[i].picture + ')'
+                    }
+                    i++
+                }
+                e.target.parentNode.childNodes[0].style.borderColor = '#f3c258'
+                e.target.parentNode.childNodes[2].style.color = '#f3c258'
+            },
+            changeInputStyle(index) {
+                if (index === 1) {
+                    document.getElementById('input').style.borderColor = '#f3c258'
+                } else {
+                    document.getElementById('input').style.borderColor = 'transparent'
+                }
+            },
+            getSkin(hero) {
+                let that = this
+                let script = document.createElement("script");
+                script.src = "https://apps.game.qq.com/cgi-bin/ams/module/ishow/V1.0/query/workList_inc.cgi?activityId=2735&sVerifyCode=ABCD&sDataType=JSON&iListNum=20&totalpage=0&page=0&iOrder=0&SearchKey=sProdName&SearchValue=" + hero + "&iSortNumClose=1&jsoncallback=process&iAMSActivityId=51991&_everyRead=true&iTypeId=2&iFlowId=267733&iActId=2735&iModuleId=2735&_=1652152746146";
+                document.body.appendChild(script);
+                document.body.removeChild(script);
+            },
+            getLowestScore() {
+                let that = this
+                let xhr = new XMLHttpRequest()
+                xhr.open('get', 'https://www.sapi.run/hero/select.php?hero=' + this.heroName + '&type=' + this.type)
+                xhr.send()
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4 && xhr.status === 200) {
+                        let res = JSON.parse(xhr.responseText).data
+                        that.score.areaName = res.area
+                        that.score.areaPower = res.areaPower
+                        that.score.cityName = res.city
+                        that.score.cityPower = res.cityPower
+                        that.score.provinceName = res.province
+                        that.score.provincePower = res.provincePower
+                        that.score.updateTime = res.updatetime
+                    }
+                }
+            }
+        }
+    })
+    let that = app
+
+    function process(json) {
+        let id = that.heroList[that.id].ename
+        that.skinNum = json.iTotalLines
+        let map = new Map()
+        for (let i = 0; i < that.skinNum; i++) {
+            let title = decodeURIComponent(json.List[i].sProdName)
+            title = title.replace(that.heroName, '').replace('壁纸', '').replace(/[^\u4e00-\u9fa5]/g, '')
+            if (map.has(title)) {
+                that.pictureList.splice(map.get(title), 1)
+            } else {
+                map.set(title, i)
+            }
+            let picture = decodeURIComponent(json.List[i].sProdImgNo_6)
+            picture = picture.substring(0, picture.length - 3) + '0'
+            that.pictureList.push({
+                id: i,
+                title: title,
+                picture: picture
+            })
+        }
+        document.getElementById("app").style.backgroundImage = 'url(' + that.pictureList[0].picture + ')'
+
+    }
+
+</script>
+</body>
+</html>
